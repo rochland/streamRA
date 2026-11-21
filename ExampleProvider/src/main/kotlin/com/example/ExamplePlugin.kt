@@ -13,7 +13,6 @@ class ExamplePlugin: Plugin() {
         activity = context as? AppCompatActivity
 
         // All providers should be added in this manner
-        registerMainAPI(ExampleProvider())
 registerMainAPI(HDFilmCehennemiProvider())
 
         openSettings = {
