@@ -1,0 +1,9 @@
+
+{
+  "name": "streamRA",
+  "description": "My CloudStream repository",
+  "manifestVersion": 1,
+  "pluginLists": [
+    "https://raw.githubusercontent.com/rochland/streamRA/builds/plugins.json"
+  ]
+}
