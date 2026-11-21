@@ -1,33 +1,24 @@
+
 dependencies {
     implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.recyclerview:recyclerview:1.3.2")
 }
 
-// Use an integer for version numbers
+// Plugin version
 version = 1
 
 cloudstream {
-    // All of these properties are optional, you can safely remove any of them.
+    description = "HD Film Cehennemi katalog sağlayıcısı"
+    authors = listOf("rochland")
 
-    description = "Lorem ipsum"
-    authors = listOf("Cloudburst", "Luna712")
+    status = 1
 
-    /**
-    * Status int as one of the following:
-    * 0: Down
-    * 1: Ok
-    * 2: Slow
-    * 3: Beta-only
-    **/
-    status = 1 // Will be 3 if unspecified
-
-    tvTypes = listOf("Movie")
+    tvTypes = listOf("Movie", "TvSeries")
 
     requiresResources = true
-    language = "en"
+    language = "tr"
 
-    // Random CC logo I found
-    iconUrl = "https://upload.wikimedia.org/wikipedia/commons/2/2f/Korduene_Logo.png"
+    iconUrl = "https://upload.wikimedia.org/wikipedia/commons/2/2f/Korduen_Logo.png"
 }
 
 android {
