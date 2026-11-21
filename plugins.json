@@ -1,7 +1,7 @@
 [
     {
         "iconUrl": "https://upload.wikimedia.org/wikipedia/commons/2/2f/Korduene_Logo.png",
-        "fileHash": "sha256-42c9a176ea908ed71c96879b1832ae38545ef139b88d6b5658d983a24c64b029",
+        "fileHash": "sha256-7d11ace5c571d97c40c1d5adf04a4506dd164d30db163faf2af60882ebc00063",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/rochland/streamRA",
         "fileSize": 11396,
@@ -14,7 +14,7 @@
             "Movie",
             "TvSeries"
         ],
-        "version": 1,
+        "version": 2,
         "internalName": "ExampleProvider",
         "description": "HD Film Cehennemi katalog sa\u011flay\u0131c\u0131s\u0131",
         "url": "https://raw.githubusercontent.com/rochland/streamRA/builds/ExampleProvider.cs3",
