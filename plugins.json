@@ -1,23 +1,23 @@
 [
-  {
-    "iconUrl": "https://upload.wikimedia.org/wikipedia/commons/2/2f/Korduen_Logo.png",
-    "fileHash": "sha256-42c9a176ea908ed71c96879b1832ae38545ef139b88d6b5658d983a24c64b029",
-    "apiVersion": 1,
-    "repositoryUrl": "https://github.com/rochland/streamRA",
-    "fileSize": 11396,
-    "status": 1,
-    "language": "tr",
-    "authors": [
-      "rochland"
-    ],
-    "tvTypes": [
-      "Movie",
-      "TvSeries"
-    ],
-    "version": 1,
-    "internalName": "ExampleProvider",
-    "description": "HD Film Cehennemi katalog sağlayıcısı",
-    "url": "https://raw.githubusercontent.com/rochland/streamRA/builds/ExampleProvider.cs3",
-    "name": "HD Film Cehennemi"
-  }
+    {
+        "iconUrl": "https://upload.wikimedia.org/wikipedia/commons/2/2f/Korduene_Logo.png",
+        "fileHash": "sha256-42c9a176ea908ed71c96879b1832ae38545ef139b88d6b5658d983a24c64b029",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/rochland/streamRA",
+        "fileSize": 11396,
+        "status": 1,
+        "language": "en",
+        "authors": [
+            "Cloudburst",
+            "Luna712"
+        ],
+        "tvTypes": [
+            "Movie"
+        ],
+        "version": 1,
+        "internalName": "ExampleProvider",
+        "description": "Lorem ipsum",
+        "url": "https://raw.githubusercontent.com/rochland/streamRA/builds/ExampleProvider.cs3",
+        "name": "ExampleProvider"
+    }
 ]
