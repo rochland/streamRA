@@ -6,17 +6,17 @@
         "repositoryUrl": "https://github.com/rochland/streamRA",
         "fileSize": 11396,
         "status": 1,
-        "language": "en",
+        "language": "tr",
         "authors": [
-            "Cloudburst",
-            "Luna712"
+            "rochland"
         ],
         "tvTypes": [
-            "Movie"
+            "Movie",
+            "TvSeries"
         ],
         "version": 1,
         "internalName": "ExampleProvider",
-        "description": "Lorem ipsum",
+        "description": "HD Film Cehennemi katalog sa\u011flay\u0131c\u0131s\u0131",
         "url": "https://raw.githubusercontent.com/rochland/streamRA/builds/ExampleProvider.cs3",
         "name": "ExampleProvider"
     }
