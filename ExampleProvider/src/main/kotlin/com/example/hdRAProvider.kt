@@ -3,11 +3,13 @@ package com.example
 import com.lagradost.cloudstream3.MainAPI
 import com.lagradost.cloudstream3.SearchResponse
 import com.lagradost.cloudstream3.TvType
+import com.lagradost.cloudstream3.app
 import com.lagradost.cloudstream3.newMovieSearchResponse
 import com.lagradost.cloudstream3.newTvSeriesSearchResponse
-import com.lagradost.cloudstream3.utils.*
+
 import org.json.JSONObject
 import org.jsoup.Jsoup
+
 import java.net.URLEncoder
 
 class HDFilmCehennemiProvider : MainAPI() {
@@ -21,9 +23,10 @@ class HDFilmCehennemiProvider : MainAPI() {
         TvType.TvSeries
     )
 
-    override val hasMainPage = false
+    override val hasMainPage = true
 
     override suspend fun search(query: String): List<SearchResponse> {
+
         val encodedQuery = URLEncoder.encode(query, "UTF-8")
         val url = "${mainUrl}search/?q=$encodedQuery"
 
@@ -36,6 +39,7 @@ class HDFilmCehennemiProvider : MainAPI() {
         val searchResults = mutableListOf<SearchResponse>()
 
         for (i in 0 until results.length()) {
+
             val html = results.optString(i)
             val document = Jsoup.parse(html)
 
@@ -60,6 +64,7 @@ class HDFilmCehennemiProvider : MainAPI() {
             if (itemUrl.isBlank()) continue
 
             if (type.equals("Dizi", ignoreCase = true)) {
+
                 searchResults.add(
                     newTvSeriesSearchResponse(
                         title,
@@ -70,7 +75,9 @@ class HDFilmCehennemiProvider : MainAPI() {
                         this.year = year
                     }
                 )
+
             } else {
+
                 searchResults.add(
                     newMovieSearchResponse(
                         title,
