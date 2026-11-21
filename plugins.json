@@ -1,10 +1,10 @@
 [
     {
         "iconUrl": "https://upload.wikimedia.org/wikipedia/commons/2/2f/Korduene_Logo.png",
-        "fileHash": "sha256-980f1df5bf1fc9eaa957f1d0af4ae272c53244aff6e872e49f5216535b1986c1",
+        "fileHash": "sha256-ad3e9f0a0416292ff2303c3de0f8158acd2945ac6fa2fbf4f6477ea096a136af",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/rochland/streamRA",
-        "fileSize": 11405,
+        "fileSize": 8286,
         "status": 1,
         "language": "tr",
         "authors": [
