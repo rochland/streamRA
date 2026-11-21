@@ -1,4 +1,3 @@
-
 package com.example
 
 import com.lagradost.cloudstream3.MainAPI
@@ -22,7 +21,7 @@ class HDFilmCehennemiProvider : MainAPI() {
         TvType.TvSeries
     )
 
-    override val hasMainPage = true
+    override val hasMainPage = false
 
     override suspend fun search(query: String): List<SearchResponse> {
         val encodedQuery = URLEncoder.encode(query, "UTF-8")
