@@ -1,4 +1,3 @@
-
 package com.example
 
 import com.lagradost.cloudstream3.MainAPI
@@ -25,44 +24,42 @@ class HDFilmCehennemiProvider : MainAPI() {
     override val hasMainPage = true
 
     override suspend fun search(query: String): List<SearchResponse> {
-
         val encodedQuery = URLEncoder.encode(query, "UTF-8")
         val url = "${mainUrl}search/?q=$encodedQuery"
 
         val response = app.get(url).text
         val json = JSONObject(response)
-        val results = json.getJSONArray("results")
+
+        val results = json.optJSONArray("results")
+            ?: return emptyList()
 
         val searchResults = mutableListOf<SearchResponse>()
 
         for (i in 0 until results.length()) {
-
-            val html = results.getString(i)
+            val html = results.optString(i)
             val document = Jsoup.parse(html)
 
-            val item = document.selectFirst("a.search-result")
+            val item = document.select("a.search-result").first()
                 ?: continue
 
-            val title = item.selectFirst("h4.title")
+            val title = item.select("h4.title").first()
                 ?.text()
                 ?: continue
 
             val itemUrl = item.absUrl("href")
-            val poster = item.selectFirst("img")
-                ?.absUrl("src")
+            val poster = item.select("img").first()?.absUrl("src")
 
-            val year = item.selectFirst(".year")
+            val year = item.select(".year").first()
                 ?.text()
                 ?.toIntOrNull()
 
-            val type = item.selectFirst(".type")
+            val type = item.select(".type").first()
                 ?.text()
                 ?.trim()
 
             if (itemUrl.isBlank()) continue
 
             if (type.equals("Dizi", ignoreCase = true)) {
-
                 searchResults.add(
                     newTvSeriesSearchResponse(
                         title,
@@ -73,9 +70,7 @@ class HDFilmCehennemiProvider : MainAPI() {
                         this.year = year
                     }
                 )
-
             } else {
-
                 searchResults.add(
                     newMovieSearchResponse(
                         title,
