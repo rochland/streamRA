@@ -23,7 +23,7 @@ class HDFilmCehennemiProvider : MainAPI() {
         TvType.TvSeries
     )
 
-    override val hasMainPage = true
+    override val hasMainPage = false
 
     override suspend fun search(query: String): List<SearchResponse> {
 
