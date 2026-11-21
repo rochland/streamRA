@@ -1,70 +1,36 @@
-
 package com.example
 
-import com.lagradost.cloudstream3.*
-import org.json.JSONObject
-import org.jsoup.Jsoup
-import java.net.URLEncoder
+import com.lagradost.cloudstream3.MainAPI
+import com.lagradost.cloudstream3.MainPageRequest
+import com.lagradost.cloudstream3.HomePageResponse
+import com.lagradost.cloudstream3.TvType
+import com.lagradost.cloudstream3.mainPageOf
+import com.lagradost.cloudstream3.newHomePageResponse
 
 class HDFilmCehennemiProvider : MainAPI() {
+
     override var mainUrl = "https://www.hdfilmcehennemi.nl/"
     override var name = "HD Film Cehennemi"
-    override val supportedTypes = setOf(TvType.Movie, TvType.TvSeries)
     override var lang = "tr"
-    override val hasMainPage = false
 
-    override suspend fun search(query: String): List<SearchResponse> {
-        val encodedQuery = URLEncoder.encode(query, "UTF-8")
-        val response = app.get(
-            "${mainUrl}search/?q=$encodedQuery"
-        ).text
+    override val supportedTypes = setOf(
+        TvType.Movie,
+        TvType.TvSeries
+    )
 
-        val json = JSONObject(response)
-        val results = json.optJSONArray("results") ?: return emptyList()
+    override val hasMainPage = true
 
-        val searchResults = mutableListOf<SearchResponse>()
+    override val mainPage = mainPageOf(
+        "catalog" to "Katalog"
+    )
 
-        for (i in 0 until results.length()) {
-            val html = results.optString(i)
-            val document = Jsoup.parse(html)
-
-            for (item in document.select("a.search-result")) {
-                val title = item.selectFirst("img")?.attr("alt")
-                    ?.takeIf { it.isNotBlank() }
-                    ?: continue
-
-                val url = item.attr("href")
-                    .takeIf { it.isNotBlank() }
-                    ?: continue
-
-                val poster = item.selectFirst("img")?.absUrl("src")
-                    ?.takeIf { it.isNotBlank() }
-
-                val year = item.selectFirst("span.year")
-                    ?.text()
-                    ?.filter { it.isDigit() }
-                    ?.toIntOrNull()
-
-                val isSeries = url.contains("/dizi/")
-
-                if (isSeries) {
-                    searchResults.add(
-                        newTvSeriesSearchResponse(title, url) {
-                            this.posterUrl = poster
-                            this.year = year
-                        }
-                    )
-                } else {
-                    searchResults.add(
-                        newMovieSearchResponse(title, url) {
-                            this.posterUrl = poster
-                            this.year = year
-                        }
-                    )
-                }
-            }
-        }
-
-        return searchResults
+    override suspend fun getMainPage(
+        page: Int,
+        request: MainPageRequest
+    ): HomePageResponse {
+        return newHomePageResponse(
+            request.name,
+            emptyList()
+        )
     }
 }
