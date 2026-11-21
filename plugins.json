@@ -1,10 +1,10 @@
 [
     {
         "iconUrl": "https://upload.wikimedia.org/wikipedia/commons/2/2f/Korduene_Logo.png",
-        "fileHash": "sha256-7d11ace5c571d97c40c1d5adf04a4506dd164d30db163faf2af60882ebc00063",
+        "fileHash": "sha256-980f1df5bf1fc9eaa957f1d0af4ae272c53244aff6e872e49f5216535b1986c1",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/rochland/streamRA",
-        "fileSize": 11396,
+        "fileSize": 11405,
         "status": 1,
         "language": "tr",
         "authors": [
@@ -15,9 +15,9 @@
             "TvSeries"
         ],
         "version": 2,
-        "internalName": "ExampleProvider",
+        "internalName": "HDFilmCehennemi",
         "description": "HD Film Cehennemi katalog sa\u011flay\u0131c\u0131s\u0131",
-        "url": "https://raw.githubusercontent.com/rochland/streamRA/builds/ExampleProvider.cs3",
-        "name": "ExampleProvider"
+        "url": "https://raw.githubusercontent.com/rochland/streamRA/builds/HDFilmCehennemi.cs3",
+        "name": "HDFilmCehennemi"
     }
 ]
