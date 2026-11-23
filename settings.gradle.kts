@@ -1,5 +1,4 @@
-
 rootProject.name = "CloudstreamPlugins"
 
-include(":HDFilmCehennemi")
-project(":HDFilmCehennemi").projectDir = file("ExampleProvider")
+include(":Dizisol")
+project(":Dizisol").projectDir = file("ExampleProvider")
