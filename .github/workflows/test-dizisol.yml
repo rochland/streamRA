@@ -84,7 +84,7 @@ jobs:
           })
           with open(path, 'w', encoding='utf-8') as f:
               json.dump(plugins, f, ensure_ascii=False, indent=4)
-              f.write('\\n')
+              f.write('\n')
           PY
           cd builds-repo
           git config user.name github-actions[bot]
