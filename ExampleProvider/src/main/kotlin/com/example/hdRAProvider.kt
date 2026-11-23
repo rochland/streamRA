@@ -23,7 +23,8 @@ class HDFilmCehennemiProvider : MainAPI() {
 
         return try {
             val encodedQuery = URLEncoder.encode(query, "UTF-8")
-            val response = app.get("${mainUrl}search/?q=$encodedQuery").text
+            // Site endpoint is /search?q=... (without a trailing slash).
+            val response = app.get("${mainUrl}search?q=$encodedQuery").text
             val results = JSONObject(response).optJSONArray("results")
                 ?: return emptyList()
 
@@ -32,8 +33,8 @@ class HDFilmCehennemiProvider : MainAPI() {
                     val html = results.optString(index)
                     if (html.isBlank()) continue
 
-                    val document = Jsoup.parse(html, mainUrl)
-                    val item = document.selectFirst("a.search-result") ?: continue
+                    val item = Jsoup.parse(html, mainUrl)
+                        .selectFirst("a.search-result") ?: continue
                     val title = item.selectFirst("h4.title")?.text()?.trim()
                         ?.takeIf { it.isNotBlank() } ?: continue
                     val itemUrl = item.absUrl("href").ifBlank { continue }
