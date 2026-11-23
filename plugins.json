@@ -16,8 +16,29 @@
         ],
         "version": 2,
         "internalName": "HDFilmCehennemi",
-        "description": "HD Film Cehennemi katalog sa\u011flay\u0131c\u0131s\u0131",
+        "description": "HD Film Cehennemi katalog sağlayıcısı",
         "url": "https://raw.githubusercontent.com/rochland/streamRA/builds/HDFilmCehennemi.cs3",
         "name": "HDFilmCehennemi"
+    },
+    {
+        "iconUrl": "https://dizisol.com/favicon-32.png",
+        "fileHash": "sha256-0dbe645a8165112b005a9069dd05d6fbbcbe3972338968d3b893dd52c3c4ba8e",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/rochland/streamRA",
+        "fileSize": 20365,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "rochland"
+        ],
+        "tvTypes": [
+            "Movie",
+            "TvSeries"
+        ],
+        "version": 9,
+        "internalName": "Dizisol",
+        "description": "DİZİSOL film ve dizi katalog sağlayıcısı",
+        "url": "https://raw.githubusercontent.com/rochland/streamRA/builds/DIZISOL.cs3",
+        "name": "DİZİSOL"
     }
-]
+]\n
