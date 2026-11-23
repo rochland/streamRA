@@ -23,8 +23,16 @@ class HDFilmCehennemiProvider : MainAPI() {
 
         return try {
             val encodedQuery = URLEncoder.encode(query, "UTF-8")
-            // Site endpoint is /search?q=... (without a trailing slash).
-            val response = app.get("${mainUrl}search?q=$encodedQuery").text
+            // Chrome's successful request resolves to /search/?q=...
+            val response = app.get(
+                "${mainUrl}search/?q=$encodedQuery",
+                headers = mapOf(
+                    "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/158.0.0.0 Safari/537.36",
+                    "DNT" to "1",
+                    "Referer" to mainUrl
+                )
+            ).text
+
             val results = JSONObject(response).optJSONArray("results")
                 ?: return emptyList()
 
