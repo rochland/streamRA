@@ -13,13 +13,13 @@ class DizisolProvider : MainAPI() {
     override var lang = "tr"
     override val hasMainPage = true
     override val supportedTypes = setOf(TvType.Movie, TvType.TvSeries)
-    override val mainPage = listOf(mainPageOf(
+    override val mainPage = mainPageOf(
         "Ana Sayfa" to "home", "Yeni Eklenenler" to "Yeni Eklenenler",
         "Yerli" to "Yerli", "Dram" to "Dram", "Komedi" to "Komedi",
         "Gerilim" to "Gerilim", "Aksiyon" to "Aksiyon", "Suç" to "Suç",
         "Korku" to "Korku", "Netflix" to "Netflix", "Disney+" to "Disney+",
         "Amazon Prime" to "Amazon Prime", "HBO Max" to "HBO Max", "TOD" to "TOD"
-    ))
+    )
 
     private fun parseSSR(html: String): JSONObject? {
         val doc = Jsoup.parse(html)
