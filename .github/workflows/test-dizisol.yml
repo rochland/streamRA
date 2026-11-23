@@ -45,3 +45,49 @@ jobs:
           name: DIZISOL CloudStream Provider ${{ github.run_number }}
           files: release/DIZISOL.cs3
           generate_release_notes: false
+      - name: Checkout builds branch
+        uses: actions/checkout@v4
+        with:
+          ref: builds
+          path: builds-repo
+      - name: Publish plugin to CloudStream repository
+        env:
+          RUN_VERSION: ${{ github.run_number }}
+        run: |
+          set -euo pipefail
+          mkdir -p builds-repo
+          cp release/DIZISOL.cs3 builds-repo/DIZISOL.cs3
+          HASH=$(sha256sum release/DIZISOL.cs3 | awk '{print $1}')
+          SIZE=$(stat -c%s release/DIZISOL.cs3)
+          python3 - <<'PY'
+          import json, os
+          path = 'builds-repo/plugins.json'
+          with open(path, encoding='utf-8') as f:
+              plugins = json.load(f)
+          plugins = [p for p in plugins if p.get('internalName') != 'Dizisol']
+          plugins.append({
+              'iconUrl': 'https://dizisol.com/favicon-32.png',
+              'fileHash': 'sha256-' + os.environ['HASH'],
+              'apiVersion': 1,
+              'repositoryUrl': 'https://github.com/rochland/streamRA',
+              'fileSize': int(os.environ['SIZE']),
+              'status': 1,
+              'language': 'tr',
+              'authors': ['rochland'],
+              'tvTypes': ['Movie', 'TvSeries'],
+              'version': int(os.environ['RUN_VERSION']),
+              'internalName': 'Dizisol',
+              'description': 'DİZİSOL film ve dizi katalog sağlayıcısı',
+              'url': 'https://raw.githubusercontent.com/rochland/streamRA/builds/DIZISOL.cs3',
+              'name': 'DİZİSOL'
+          })
+          with open(path, 'w', encoding='utf-8') as f:
+              json.dump(plugins, f, ensure_ascii=False, indent=4)
+              f.write('\\n')
+          PY
+          cd builds-repo
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add DIZISOL.cs3 plugins.json
+          git commit -m "Publish DIZISOL plugin build ${{ github.run_number }}"
+          git push origin builds
