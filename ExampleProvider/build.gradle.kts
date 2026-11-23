@@ -3,23 +3,14 @@ dependencies {
     implementation("androidx.recyclerview:recyclerview:1.3.2")
 }
 
-version = 2
+version = 1
 
 cloudstream {
-    description = "HD Film Cehennemi katalog sağlayıcısı"
+    description = "DİZİSOL film ve dizi katalog sağlayıcısı"
     authors = listOf("rochland")
     status = 1
-
     tvTypes = listOf("Movie", "TvSeries")
-    requiresResources = true
+    requiresResources = false
     language = "tr"
-
-    iconUrl = "https://upload.wikimedia.org/wikipedia/commons/2/2f/Korduene_Logo.png"
-}
-
-android {
-    buildFeatures {
-        buildConfig = true
-        viewBinding = true
-    }
+    iconUrl = "https://dizisol.com/favicon-32.png"
 }
