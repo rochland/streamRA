@@ -59,6 +59,7 @@ jobs:
           cp release/DIZISOL.cs3 builds-repo/DIZISOL.cs3
           HASH=$(sha256sum release/DIZISOL.cs3 | awk '{print $1}')
           SIZE=$(stat -c%s release/DIZISOL.cs3)
+          export HASH SIZE
           python3 - <<'PY'
           import json, os
           path = 'builds-repo/plugins.json'
