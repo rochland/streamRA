@@ -109,19 +109,39 @@ class DizisolProvider : MainAPI() {
     override suspend fun search(query: String): List<SearchResponse> {
         val html = app.get("${mainUrl}arama?q=${URLEncoder.encode(query, "UTF-8")}").text
         val out = linkedMapOf<String, SearchResponse>()
-        ssr(html)?.optJSONObject("state")?.optJSONArray("queries")?.let { collect(it, out) }
-        if (out.isEmpty()) {
-            for (a in Jsoup.parse(html).select("a[href]")) {
-                val href = a.absUrl("href")
-                val title = a.text().trim()
-                if (href.isBlank() || title.isBlank()) continue
-                val tv = href.contains("/dizi", true) || href.contains("/tv", true)
-                val key = "url:$href"
-                out[key] = if (tv) newTvSeriesSearchResponse(title, "dizisol-url|$href", TvType.TvSeries)
-                    else newMovieSearchResponse(title, "dizisol-url|$href", TvType.Movie)
+        val doc = Jsoup.parse(html)
+        // Search results must keep the site's canonical slug URL so "Open in browser" works.
+        for (a in doc.select("a[href*=/izle/film/], a[href*=/izle/dizi/]")) {
+            val href = a.absUrl("href")
+            val title = a.selectFirst("h1,h2,h3,h4")?.text()?.trim()?.takeIf { it.isNotBlank() }
+                ?: a.text().trim()
+            if (href.isBlank() || title.isBlank()) continue
+            val tv = href.contains("/izle/dizi/")
+            val image = a.selectFirst("img")?.let { it.absUrl("src").ifBlank { it.absUrl("data-src") } }
+            val item = if (tv) newTvSeriesSearchResponse(title, href, TvType.TvSeries) {
+                posterUrl = image?.takeIf { it.startsWith("http") }
+            } else newMovieSearchResponse(title, href, TvType.Movie) {
+                posterUrl = image?.takeIf { it.startsWith("http") }
             }
+            out[href] = item
+        }
+        if (out.isEmpty()) {
+            ssr(html)?.optJSONObject("state")?.optJSONArray("queries")?.let { collect(it, out) }
         }
         return out.values.toList()
+    }
+
+    private fun findTmdbId(value: Any?): Int? {
+        when (value) {
+            is JSONObject -> {
+                val id = value.optInt("tmdbId")
+                if (id > 0) return id
+                val keys = value.keys()
+                while (keys.hasNext()) findTmdbId(value.opt(keys.next()))?.let { return it }
+            }
+            is JSONArray -> for (i in 0 until value.length()) findTmdbId(value.opt(i))?.let { return it }
+        }
+        return null
     }
 
     private fun apiUrl(id: Int, type: String) = "${mainUrl}api/movies/by-tmdb/$id?type=$type"
@@ -139,9 +159,16 @@ class DizisolProvider : MainAPI() {
 
     override suspend fun load(url: String): LoadResponse? {
         val p = url.split("|")
-        if (p.size < 3 || p[0] != "dizisol") return null
-        val id = p[1].toIntOrNull() ?: return null
-        val type = p[2]
+        val id: Int
+        val type: String
+        if (p.size >= 3 && p[0] == "dizisol") {
+            id = p[1].toIntOrNull() ?: return null
+            type = p[2]
+        } else if (url.contains("/izle/film/") || url.contains("/izle/dizi/")) {
+            type = if (url.contains("/izle/dizi/")) "tv" else "movie"
+            val pageHtml = app.get(url).text
+            id = findTmdbId(ssr(pageHtml)) ?: return null
+        } else return null
         val items = records(app.get(apiUrl(id, type)).text)
         if (items.isEmpty()) return null
         val show = items.firstOrNull { it.optInt("season") == 0 && it.optInt("episode") == 0 } ?: items.first()
