@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -28,9 +28,20 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew make
+      - name: Prepare direct-download package
+        run: |
+          mkdir -p release
+          cp ExampleProvider/build/*.cs3 release/DIZISOL.cs3
       - name: Upload CS3 package
         uses: actions/upload-artifact@v4
         with:
           name: dizisol-provider-cs3
-          path: '**/build/*.cs3'
+          path: release/DIZISOL.cs3
           if-no-files-found: error
+      - name: Publish GitHub release asset
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: dizisol-build-${{ github.run_number }}
+          name: DIZISOL CloudStream Provider ${{ github.run_number }}
+          files: release/DIZISOL.cs3
+          generate_release_notes: false
