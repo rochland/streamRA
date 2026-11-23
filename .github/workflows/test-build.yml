@@ -4,17 +4,23 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout selected branch
+      - name: Checkout selected source branch
         uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
           path: src
+
+      - name: Checkout repository builds branch
+        uses: actions/checkout@v4
+        with:
+          ref: builds
+          path: builds
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -25,18 +31,27 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v4
 
-      - name: Build plugin
+      - name: Build plugin and metadata
         working-directory: src
         run: |
           chmod +x gradlew
           ./gradlew make makePluginsJson
 
-      - name: Upload build outputs
-        uses: actions/upload-artifact@v4
-        with:
-          name: HDFilmCehennemi-test-build
-          path: |
-            src/**/build/**/*.cs3
-            src/build/plugins.json
-          if-no-files-found: error
-          retention-days: 7
+      - name: Copy generated files
+        run: |
+          find "$GITHUB_WORKSPACE/src" -type f -name "*.cs3" -path "*/build/*" -exec cp {} "$GITHUB_WORKSPACE/builds/" \;
+          cp "$GITHUB_WORKSPACE/src/build/plugins.json" "$GITHUB_WORKSPACE/builds/plugins.json"
+          test -n "$(find "$GITHUB_WORKSPACE/builds" -maxdepth 1 -name '*.cs3' -print -quit)"
+
+      - name: Publish plugin repository
+        working-directory: builds
+        run: |
+          git config user.email "actions@github.com"
+          git config user.name "GitHub Actions"
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "Publish plugin from ${GITHUB_REF_NAME}"
+            git push origin HEAD:builds
+          else
+            echo "No generated changes to publish."
+          fi
