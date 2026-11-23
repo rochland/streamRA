@@ -1,6 +1,9 @@
 name: Test DIZISOL provider
 
 on:
+  push:
+    branches:
+      - dizisol-provider
   workflow_dispatch:
 
 permissions:
