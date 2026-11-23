@@ -27,7 +27,7 @@ class BlankFragment(private val plugin: ExamplePlugin) : BottomSheetDialogFragme
     @SuppressLint("DiscouragedApi")
     @Suppress("SameParameterValue")
     private fun getDrawable(name: String): Drawable? {
-        val id = plugin.resources?.getIdentifier(name, "drawable", BuildConfig.LIBRARY_PACKAGE_NAME)
+        val id = plugin.resources?.getIdentifier(name, "drawable", "com.example")
         return id?.let { ResourcesCompat.getDrawable(plugin.resources ?: return null, it, null) }
     }
 
@@ -35,14 +35,14 @@ class BlankFragment(private val plugin: ExamplePlugin) : BottomSheetDialogFragme
     @SuppressLint("DiscouragedApi")
     @Suppress("SameParameterValue")
     private fun getString(name: String): String? {
-        val id = plugin.resources?.getIdentifier(name, "string", BuildConfig.LIBRARY_PACKAGE_NAME)
+        val id = plugin.resources?.getIdentifier(name, "string", "com.example")
         return id?.let { plugin.resources?.getString(it) }
     }
 
     // Generic findView function to find views by name
     @SuppressLint("DiscouragedApi")
     private fun <T : View> View.findViewByName(name: String): T? {
-        val id = plugin.resources?.getIdentifier(name, "id", BuildConfig.LIBRARY_PACKAGE_NAME)
+        val id = plugin.resources?.getIdentifier(name, "id", "com.example")
         return findViewById(id ?: return null)
     }
 
@@ -53,7 +53,7 @@ class BlankFragment(private val plugin: ExamplePlugin) : BottomSheetDialogFragme
         savedInstanceState: Bundle?
     ): View? {
         // Inflate the layout for this fragment
-        val layoutId = plugin.resources?.getIdentifier("fragment_blank", "layout", BuildConfig.LIBRARY_PACKAGE_NAME)
+        val layoutId = plugin.resources?.getIdentifier("fragment_blank", "layout", "com.example")
         return layoutId?.let {
             inflater.inflate(plugin.resources?.getLayout(it), container, false)
         }
