@@ -1,0 +1,33 @@
+name: Test DIZISOL provider
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout DIZISOL branch
+        uses: actions/checkout@v4
+        with:
+          ref: dizisol-provider
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v4
+      - name: Build plugin
+        run: |
+          chmod +x gradlew
+          ./gradlew make
+      - name: Upload CS3 package
+        uses: actions/upload-artifact@v4
+        with:
+          name: dizisol-provider-cs3
+          path: '**/build/*.cs3'
+          if-no-files-found: error
