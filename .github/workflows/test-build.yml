@@ -1,0 +1,42 @@
+name: Test Build (branch)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout selected branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+          path: src
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v4
+
+      - name: Build plugin
+        working-directory: src
+        run: |
+          chmod +x gradlew
+          ./gradlew make makePluginsJson
+
+      - name: Upload build outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: HDFilmCehennemi-test-build
+          path: |
+            src/**/build/**/*.cs3
+            src/build/plugins.json
+          if-no-files-found: error
+          retention-days: 7
