@@ -184,18 +184,51 @@ class DizisolProvider : MainAPI() {
     }.getOrDefault(emptyList())
 
     override suspend fun load(url: String): LoadResponse? {
+        println("DIZISOL_DEBUG load:start url=$url")
         val p = url.split("|")
         val id: Int
         val type: String
         if (p.size >= 3 && p[0] == "dizisol") {
-            id = p[1].toIntOrNull() ?: return null
+            id = p[1].toIntOrNull() ?: run {
+                println("DIZISOL_DEBUG load:invalid_internal_id value=${p.getOrNull(1)}")
+                return null
+            }
             type = p[2]
-        } else if (url.contains("/film/") || url.contains("/dizi/") || url.contains("/izle/film/") || url.contains("/dizi/") || url.contains("/izle/dizi/")) {
+            println("DIZISOL_DEBUG load:internal id=$id type=$type")
+        } else if (url.contains("/film/") || url.contains("/dizi/") || url.contains("/izle/film/") || url.contains("/izle/dizi/")) {
             type = if (url.contains("/dizi/") || url.contains("/izle/dizi/")) "tv" else "movie"
-            val pageHtml = app.get(url).text
-            id = findTmdbId(ssr(pageHtml)) ?: return null
-        } else return null
-        val items = records(app.get(apiUrl(id, type)).text)
+            val pageHtml = try {
+                app.get(url).text
+            } catch (e: Exception) {
+                println("DIZISOL_DEBUG load:page_request_error ${e::class.simpleName}: ${e.message}")
+                throw e
+            }
+            val state = ssr(pageHtml)
+            println("DIZISOL_DEBUG load:page bytes=${pageHtml.length} ssr=${state != null} type=$type")
+            if (state == null) {
+                val scriptPresent = Jsoup.parse(pageHtml, mainUrl).selectFirst("script#__react_ssr__") != null
+                println("DIZISOL_DEBUG load:ssr_missing scriptPresent=$scriptPresent htmlStart=${pageHtml.take(180).replace("\\n", " ")}")
+                return null
+            }
+            id = findTmdbId(state) ?: run {
+                println("DIZISOL_DEBUG load:tmdb_id_missing rootKeys=${state.keys().asSequence().toList()}")
+                return null
+            }
+            println("DIZISOL_DEBUG load:tmdb_id=$id")
+        } else {
+            println("DIZISOL_DEBUG load:unsupported_url=$url")
+            return null
+        }
+        val endpoint = apiUrl(id, type)
+        println("DIZISOL_DEBUG load:api_request url=$endpoint")
+        val raw = try {
+            app.get(endpoint).text
+        } catch (e: Exception) {
+            println("DIZISOL_DEBUG load:api_request_error ${e::class.simpleName}: ${e.message}")
+            throw e
+        }
+        val items = records(raw)
+        println("DIZISOL_DEBUG load:api_response bytes=${raw.length} prefix=${raw.take(350).replace("\\n", " ")} records=${items.size}")
         if (items.isEmpty()) return null
         val show = items.firstOrNull { it.optInt("season") == 0 && it.optInt("episode") == 0 } ?: items.first()
         val title = show.optString("titleTr").takeIf { it.isNotBlank() && it != "null" }
