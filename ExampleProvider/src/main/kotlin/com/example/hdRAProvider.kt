@@ -1,5 +1,6 @@
 package com.example
 
+import android.util.Log
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 import org.json.JSONArray
@@ -184,51 +185,51 @@ class DizisolProvider : MainAPI() {
     }.getOrDefault(emptyList())
 
     override suspend fun load(url: String): LoadResponse? {
-        println("DIZISOL_DEBUG load:start url=$url")
+        Log.d("DIZISOL_DEBUG", " load:start url=$url")
         val p = url.split("|")
         val id: Int
         val type: String
         if (p.size >= 3 && p[0] == "dizisol") {
             id = p[1].toIntOrNull() ?: run {
-                println("DIZISOL_DEBUG load:invalid_internal_id value=${p.getOrNull(1)}")
+                Log.d("DIZISOL_DEBUG", " load:invalid_internal_id value=${p.getOrNull(1)}")
                 return null
             }
             type = p[2]
-            println("DIZISOL_DEBUG load:internal id=$id type=$type")
+            Log.d("DIZISOL_DEBUG", " load:internal id=$id type=$type")
         } else if (url.contains("/film/") || url.contains("/dizi/") || url.contains("/izle/film/") || url.contains("/izle/dizi/")) {
             type = if (url.contains("/dizi/") || url.contains("/izle/dizi/")) "tv" else "movie"
             val pageHtml = try {
                 app.get(url).text
             } catch (e: Exception) {
-                println("DIZISOL_DEBUG load:page_request_error ${e::class.simpleName}: ${e.message}")
+                Log.d("DIZISOL_DEBUG", " load:page_request_error ${e::class.simpleName}: ${e.message}")
                 throw e
             }
             val state = ssr(pageHtml)
-            println("DIZISOL_DEBUG load:page bytes=${pageHtml.length} ssr=${state != null} type=$type")
+            Log.d("DIZISOL_DEBUG", " load:page bytes=${pageHtml.length} ssr=${state != null} type=$type")
             if (state == null) {
                 val scriptPresent = Jsoup.parse(pageHtml, mainUrl).selectFirst("script#__react_ssr__") != null
-                println("DIZISOL_DEBUG load:ssr_missing scriptPresent=$scriptPresent htmlStart=${pageHtml.take(180).replace("\\n", " ")}")
+                Log.d("DIZISOL_DEBUG", " load:ssr_missing scriptPresent=$scriptPresent htmlStart=${pageHtml.take(180).replace("\\n", " ")}")
                 return null
             }
             id = findTmdbId(state) ?: run {
-                println("DIZISOL_DEBUG load:tmdb_id_missing rootKeys=${state.keys().asSequence().toList()}")
+                Log.d("DIZISOL_DEBUG", " load:tmdb_id_missing rootKeys=${state.keys().asSequence().toList()}")
                 return null
             }
-            println("DIZISOL_DEBUG load:tmdb_id=$id")
+            Log.d("DIZISOL_DEBUG", " load:tmdb_id=$id")
         } else {
-            println("DIZISOL_DEBUG load:unsupported_url=$url")
+            Log.d("DIZISOL_DEBUG", " load:unsupported_url=$url")
             return null
         }
         val endpoint = apiUrl(id, type)
-        println("DIZISOL_DEBUG load:api_request url=$endpoint")
+        Log.d("DIZISOL_DEBUG", " load:api_request url=$endpoint")
         val raw = try {
             app.get(endpoint).text
         } catch (e: Exception) {
-            println("DIZISOL_DEBUG load:api_request_error ${e::class.simpleName}: ${e.message}")
+            Log.d("DIZISOL_DEBUG", " load:api_request_error ${e::class.simpleName}: ${e.message}")
             throw e
         }
         val items = records(raw)
-        println("DIZISOL_DEBUG load:api_response bytes=${raw.length} prefix=${raw.take(350).replace("\\n", " ")} records=${items.size}")
+        Log.d("DIZISOL_DEBUG", " load:api_response bytes=${raw.length} prefix=${raw.take(350).replace("\\n", " ")} records=${items.size}")
         if (items.isEmpty()) return null
         val show = items.firstOrNull { it.optInt("season") == 0 && it.optInt("episode") == 0 } ?: items.first()
         val title = show.optString("titleTr").takeIf { it.isNotBlank() && it != "null" }
@@ -272,10 +273,20 @@ class DizisolProvider : MainAPI() {
             "dizisol-episode" -> { type = "tv"; epId = p.getOrNull(2)?.toIntOrNull() ?: return false }
             else -> return false
         }
-        val items = records(app.get(apiUrl(id, type)).text)
+        Log.d("DIZISOL_DEBUG", "loadLinks:start data=$data id=$id type=$type epId=$epId")
+        val raw = try {
+            app.get(apiUrl(id, type)).text
+        } catch (e: Exception) {
+            Log.e("DIZISOL_DEBUG", "loadLinks:api_error ${e::class.simpleName}: ${e.message}", e)
+            throw e
+        }
+        val items = records(raw)
+        Log.d("DIZISOL_DEBUG", "loadLinks:api_response bytes=${raw.length} records=${items.size}")
         val detail = if (epId == null) items.firstOrNull() else items.firstOrNull { it.optInt("id") == epId }
+        Log.d("DIZISOL_DEBUG", "loadLinks:detail_found=${detail != null}")
         if (detail == null) return false
         val sources = detail.optJSONArray("sources") ?: JSONArray()
+        Log.d("DIZISOL_DEBUG", "loadLinks:sources=${sources.length()} hasDirectStream=${detail.optString("m3u8Url").startsWith("http")}")
         var found = false
         for (i in 0 until sources.length()) {
             val source = sources.optJSONObject(i) ?: continue
