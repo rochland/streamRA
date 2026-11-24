@@ -102,6 +102,56 @@ class DizisolProvider : MainAPI() {
         }
     }
 
+    private fun cardFromAnchor(a: org.jsoup.nodes.Element): SearchResponse? {
+        val href = a.absUrl("href").ifBlank { a.attr("href") }
+        val path = runCatching { java.net.URI(href).path.orEmpty() }.getOrDefault(href)
+        val lower = path.lowercase()
+        val tv = lower.contains("/dizi/") || lower.contains("/izle/dizi/")
+        if (!lower.contains("/film/") && !lower.contains("/dizi/") && !lower.contains("/izle/")) return null
+        if (!href.startsWith("http")) return null
+        val title = a.selectFirst("h1,h2,h3,h4")?.text()?.trim()?.takeIf { it.isNotBlank() }
+            ?: a.selectFirst("img")?.let { it.attr("alt").ifBlank { it.attr("title") } }?.takeIf { it.isNotBlank() }
+            ?: a.text().trim().takeIf { it.isNotBlank() } ?: return null
+        val image = a.selectFirst("img")?.let {
+            it.absUrl("src").ifBlank { it.absUrl("data-src") }.ifBlank { it.attr("src").ifBlank { it.attr("data-src") } }
+        }
+        return if (tv) newTvSeriesSearchResponse(title, href, TvType.TvSeries) {
+            posterUrl = image?.takeIf { it.startsWith("http") }
+        } else newMovieSearchResponse(title, href, TvType.Movie) {
+            posterUrl = image?.takeIf { it.startsWith("http") }
+        }
+    }
+
+    private fun htmlHomeLists(html: String): List<HomePageList> {
+        val doc = Jsoup.parse(html, mainUrl)
+        val grouped = linkedMapOf<String, MutableList<SearchResponse>>()
+        val all = linkedMapOf<String, SearchResponse>()
+        for (a in doc.select("a[href]")) {
+            val item = cardFromAnchor(a) ?: continue
+            all[item.url] = item
+            var parent: org.jsoup.nodes.Element? = a.parent()
+            var section: org.jsoup.nodes.Element? = null
+            repeat(5) {
+                if (parent != null && section == null) {
+                    val candidate = parent!!
+                    val heading = candidate.selectFirst("h1,h2,h3,h4")
+                    if (heading != null && candidate.select("a[href]").size >= 2) section = candidate
+                    parent = candidate.parent()
+                }
+            }
+            val heading = section?.selectFirst("h1,h2,h3,h4")?.text()?.trim()
+            val name = heading?.takeIf { it.isNotBlank() } ?: "DİZİSOL"
+            grouped.getOrPut(name) { mutableListOf() }.add(item)
+        }
+        val lists = grouped.mapNotNull { (name, cards) ->
+            val unique = cards.distinctBy { it.url }
+            if (unique.isEmpty()) null else HomePageList(name, unique)
+        }.toMutableList()
+        if (lists.isEmpty() && all.isNotEmpty()) lists.add(HomePageList("DİZİSOL", all.values.toList()))
+        Log.d("DIZISOL_DEBUG", "homepage:html_cards=${all.size} groups=${lists.map { it.name + ":" + it.list.size }}")
+        return lists
+    }
+
     private fun homeLists(html: String): List<HomePageList> {
         val queries = ssr(html)?.optJSONObject("state")?.optJSONArray("queries") ?: return emptyList()
         val canonical = canonicalMap(html)
@@ -128,32 +178,39 @@ class DizisolProvider : MainAPI() {
     }
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val lists = homeLists(app.get(mainUrl).text)
+        val html = app.get(mainUrl).text
+        val parsed = homeLists(html)
+        val lists = if (parsed.isNotEmpty()) parsed else htmlHomeLists(html)
+        Log.d("DIZISOL_DEBUG", "homepage:bytes=${html.length} ssr=${ssr(html) != null} lists=${lists.size}")
         val chosen = if (request.data == "home") lists else lists.filter { it.name.contains(request.data, true) }
         return newHomePageResponse(chosen, hasNext = false)
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
-        val html = app.get("${mainUrl}arama?q=${URLEncoder.encode(query, "UTF-8")}").text
+        val encoded = URLEncoder.encode(query, "UTF-8")
+        val urls = listOf("${mainUrl}arama?q=$encoded", "${mainUrl}ara?q=$encoded", "${mainUrl}search?q=$encoded")
         val out = linkedMapOf<String, SearchResponse>()
-        val doc = Jsoup.parse(html, mainUrl)
-        // Search results must keep the site's canonical slug URL so "Open in browser" works.
-        for (a in doc.select("a[href*=/film/], a[href*=/dizi/], a[href*=/izle/film/], a[href*=/izle/dizi/]")) {
-            val href = a.absUrl("href")
-            val title = a.selectFirst("h1,h2,h3,h4")?.text()?.trim()?.takeIf { it.isNotBlank() }
-                ?: a.text().trim()
-            if (href.isBlank() || title.isBlank()) continue
-            val tv = href.contains("/izle/dizi/")
-            val image = a.selectFirst("img")?.let { it.absUrl("src").ifBlank { it.absUrl("data-src") } }
-            val item = if (tv) newTvSeriesSearchResponse(title, href, TvType.TvSeries) {
-                posterUrl = image?.takeIf { it.startsWith("http") }
-            } else newMovieSearchResponse(title, href, TvType.Movie) {
-                posterUrl = image?.takeIf { it.startsWith("http") }
+        for (url in urls) {
+            val html = try { app.get(url).text } catch (e: Exception) {
+                Log.w("DIZISOL_DEBUG", "search:request_error url=$url error=${e.message}")
+                continue
             }
-            out[href] = item
-        }
-        if (out.isEmpty()) {
-            ssr(html)?.optJSONObject("state")?.optJSONArray("queries")?.let { collect(it, out, canonical = canonicalMap(html)) }
+            val doc = Jsoup.parse(html, mainUrl)
+            var found = 0
+            for (a in doc.select("a[href]")) {
+                val item = cardFromAnchor(a) ?: continue
+                if (!normalizeTitle(item.name).contains(normalizeTitle(query)) &&
+                    !normalizeTitle(query).contains(normalizeTitle(item.name))) continue
+                out[item.url] = item
+                found++
+            }
+            if (out.isEmpty()) {
+                ssr(html)?.optJSONObject("state")?.optJSONArray("queries")?.let {
+                    collect(it, out, canonical = canonicalMap(html))
+                }
+            }
+            Log.d("DIZISOL_DEBUG", "search:url=$url bytes=${html.length} ssr=${ssr(html) != null} anchors=$found total=${out.size}")
+            if (out.isNotEmpty()) break
         }
         return out.values.toList()
     }
