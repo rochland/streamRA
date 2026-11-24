@@ -35,7 +35,7 @@ class DizisolProvider : MainAPI() {
     }
 
     private fun normalizeTitle(value: String): String = Normalizer.normalize(value.lowercase(), Normalizer.Form.NFD)
-        .replace("\p{Mn}+".toRegex(), "").replace("[^a-z0-9]+".toRegex(), " ").trim()
+        .replace("\\p{Mn}+".toRegex(), "").replace("[^a-z0-9]+".toRegex(), " ").trim()
 
     private fun canonicalMap(html: String): Map<String, String> {
         val result = mutableMapOf<String, String>()
