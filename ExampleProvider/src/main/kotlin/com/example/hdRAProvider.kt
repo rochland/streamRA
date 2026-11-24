@@ -23,7 +23,7 @@ class DizisolProvider : MainAPI() {
     )
 
     private fun ssr(html: String): JSONObject? {
-        val script = Jsoup.parse(html).selectFirst("script#__react_ssr__") ?: return null
+        val script = Jsoup.parse(html, mainUrl).selectFirst("script#__react_ssr__") ?: return null
         return runCatching { JSONObject(script.data().ifBlank { script.html() }) }.getOrNull()
     }
 
@@ -39,7 +39,7 @@ class DizisolProvider : MainAPI() {
 
     private fun canonicalMap(html: String): Map<String, String> {
         val result = mutableMapOf<String, String>()
-        val doc = Jsoup.parse(html)
+        val doc = Jsoup.parse(html, mainUrl)
         for (a in doc.select("a[href*=/izle/film/], a[href*=/izle/dizi/]")) {
             val href = a.absUrl("href")
             if (!href.startsWith(mainUrl)) continue
@@ -62,13 +62,14 @@ class DizisolProvider : MainAPI() {
         val media = o.optString("media_type").ifBlank { o.optString("mediaType") }.ifBlank { fallback.orEmpty() }
         val tv = media.equals("tv", true) || media.equals("series", true) ||
             (media.isBlank() && (o.has("first_air_date") || o.has("name")))
-        val title = o.optString("title").takeIf { it.isNotBlank() && it != "null" }
-            ?: o.optString("name").takeIf { it.isNotBlank() && it != "null" }
-            ?: o.optString("titleTr").takeIf { it.isNotBlank() && it != "null" } ?: return null
+        val titleTr = o.optString("titleTr").takeIf { it.isNotBlank() && it != "null" }
+        val title = titleTr
+            ?: o.optString("title").takeIf { it.isNotBlank() && it != "null" }
+            ?: o.optString("name").takeIf { it.isNotBlank() && it != "null" } ?: return null
         val image = poster(o.optString("poster_path").ifBlank { o.optString("poster") })
         val year = o.optString("release_date").ifBlank { o.optString("first_air_date") }.take(4).toIntOrNull()
             ?: o.optInt("year").takeIf { it > 0 }
-        val url = canonical[normalizeTitle(title)] ?: "dizisol|$id|${if (tv) "tv" else "movie"}"
+        val url = listOfNotNull(titleTr, o.optString("title").takeIf { it.isNotBlank() && it != "null" }, o.optString("name").takeIf { it.isNotBlank() && it != "null" }).firstNotNullOfOrNull { canonical[normalizeTitle(it)] } ?: "dizisol|$id|${if (tv) "tv" else "movie"}"
         return if (tv) newTvSeriesSearchResponse(title, url, TvType.TvSeries) {
             posterUrl = image; this.year = year
         } else newMovieSearchResponse(title, url, TvType.Movie) {
@@ -134,7 +135,7 @@ class DizisolProvider : MainAPI() {
     override suspend fun search(query: String): List<SearchResponse> {
         val html = app.get("${mainUrl}arama?q=${URLEncoder.encode(query, "UTF-8")}").text
         val out = linkedMapOf<String, SearchResponse>()
-        val doc = Jsoup.parse(html)
+        val doc = Jsoup.parse(html, mainUrl)
         // Search results must keep the site's canonical slug URL so "Open in browser" works.
         for (a in doc.select("a[href*=/izle/film/], a[href*=/izle/dizi/]")) {
             val href = a.absUrl("href")
