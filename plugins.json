@@ -22,10 +22,10 @@
     },
     {
         "iconUrl": "https://dizisol.com/favicon-32.png",
-        "fileHash": "sha256-4687cdb77d8828a2868790072134da52051873a9ffb0cbbcce703fe33695a611",
+        "fileHash": "sha256-7f4466721d2c4df864114b875e23bfe34765209ae56d703cb05ea279a0f01225",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/rochland/streamRA",
-        "fileSize": 26610,
+        "fileSize": 28011,
         "status": 1,
         "language": "tr",
         "authors": [
@@ -35,7 +35,7 @@
             "Movie",
             "TvSeries"
         ],
-        "version": 20,
+        "version": 21,
         "internalName": "Dizisol",
         "description": "DİZİSOL film ve dizi katalog sağlayıcısı",
         "url": "https://raw.githubusercontent.com/rochland/streamRA/builds/DIZISOL.cs3",
