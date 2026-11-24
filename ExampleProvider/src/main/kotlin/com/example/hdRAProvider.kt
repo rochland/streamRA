@@ -40,7 +40,7 @@ class DizisolProvider : MainAPI() {
     private fun canonicalMap(html: String): Map<String, String> {
         val result = mutableMapOf<String, String>()
         val doc = Jsoup.parse(html, mainUrl)
-        for (a in doc.select("a[href*=/izle/film/], a[href*=/izle/dizi/]")) {
+        for (a in doc.select("a[href*=/film/], a[href*=/dizi/], a[href*=/izle/film/], a[href*=/izle/dizi/]")) {
             val href = a.absUrl("href")
             if (!href.startsWith(mainUrl)) continue
             val candidates = listOf(
@@ -137,7 +137,7 @@ class DizisolProvider : MainAPI() {
         val out = linkedMapOf<String, SearchResponse>()
         val doc = Jsoup.parse(html, mainUrl)
         // Search results must keep the site's canonical slug URL so "Open in browser" works.
-        for (a in doc.select("a[href*=/izle/film/], a[href*=/izle/dizi/]")) {
+        for (a in doc.select("a[href*=/film/], a[href*=/dizi/], a[href*=/izle/film/], a[href*=/izle/dizi/]")) {
             val href = a.absUrl("href")
             val title = a.selectFirst("h1,h2,h3,h4")?.text()?.trim()?.takeIf { it.isNotBlank() }
                 ?: a.text().trim()
@@ -190,8 +190,8 @@ class DizisolProvider : MainAPI() {
         if (p.size >= 3 && p[0] == "dizisol") {
             id = p[1].toIntOrNull() ?: return null
             type = p[2]
-        } else if (url.contains("/izle/film/") || url.contains("/izle/dizi/")) {
-            type = if (url.contains("/izle/dizi/")) "tv" else "movie"
+        } else if (url.contains("/film/") || url.contains("/dizi/") || url.contains("/izle/film/") || url.contains("/dizi/") || url.contains("/izle/dizi/")) {
+            type = if (url.contains("/dizi/") || url.contains("/izle/dizi/")) "tv" else "movie"
             val pageHtml = app.get(url).text
             id = findTmdbId(ssr(pageHtml)) ?: return null
         } else return null
