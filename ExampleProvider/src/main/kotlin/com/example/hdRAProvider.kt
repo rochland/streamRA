@@ -218,14 +218,42 @@ class DizisolProvider : MainAPI() {
     private fun findTmdbId(value: Any?): Int? {
         when (value) {
             is JSONObject -> {
-                val id = value.optInt("tmdbId")
-                if (id > 0) return id
-                val keys = value.keys()
-                while (keys.hasNext()) findTmdbId(value.opt(keys.next()))?.let { return it }
+                val keys = value.keys().asSequence().toList()
+                // Site payloads may use tmdbId, tmdb_id, tmdbID, or a nested external-id object.
+                for (key in keys) {
+                    val normalized = key.lowercase().replace("[^a-z0-9]".toRegex(), "")
+                    if (normalized.contains("tmdb") && (normalized.endsWith("id") || normalized == "tmdb")) {
+                        val raw = value.opt(key)
+                        val id = when (raw) {
+                            is Number -> raw.toInt()
+                            is String -> raw.toIntOrNull()
+                            is JSONObject -> raw.optInt("id").takeIf { it > 0 }
+                            else -> null
+                        }
+                        if (id != null && id > 0) return id
+                    }
+                }
+                for (key in keys) findTmdbId(value.opt(key))?.let { return it }
             }
             is JSONArray -> for (i in 0 until value.length()) findTmdbId(value.opt(i))?.let { return it }
         }
         return null
+    }
+
+    private fun describeJson(value: Any?, depth: Int = 0): String {
+        if (depth > 3) return "..."
+        return when (value) {
+            is JSONObject -> value.keys().asSequence().take(30).joinToString(",") { key ->
+                val child = value.opt(key)
+                "$key:${when (child) {
+                    is JSONObject -> describeJson(child, depth + 1)
+                    is JSONArray -> "array(${child.length()})"
+                    else -> child?.javaClass?.simpleName ?: "null"
+                }}"
+            }
+            is JSONArray -> "array(${value.length()})"
+            else -> value?.javaClass?.simpleName ?: "null"
+        }
     }
 
     private fun apiUrl(id: Int, type: String) = "${mainUrl}api/movies/by-tmdb/$id?type=$type"
@@ -269,7 +297,7 @@ class DizisolProvider : MainAPI() {
                 return null
             }
             id = findTmdbId(state) ?: run {
-                Log.d("DIZISOL_DEBUG", " load:tmdb_id_missing rootKeys=${state.keys().asSequence().toList()}")
+                Log.d("DIZISOL_DEBUG", " load:tmdb_id_missing structure=${describeJson(state)}")
                 return null
             }
             Log.d("DIZISOL_DEBUG", " load:tmdb_id=$id")
