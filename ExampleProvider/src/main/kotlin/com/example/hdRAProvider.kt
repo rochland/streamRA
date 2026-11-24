@@ -43,18 +43,12 @@ class DizisolProvider : MainAPI() {
         for (a in doc.select("a[href*=/izle/film/], a[href*=/izle/dizi/]")) {
             val href = a.absUrl("href")
             if (!href.startsWith(mainUrl)) continue
-            val candidates = mutableListOf(
+            val candidates = listOf(
                 a.selectFirst("h1,h2,h3,h4")?.text().orEmpty(),
                 a.text(),
                 a.selectFirst("img")?.attr("alt").orEmpty(),
                 a.selectFirst("img")?.attr("title").orEmpty()
             )
-            // Cards can display titleTr while SSR records retain the original title.
-            for (node in a.select("[title], [data-title], [aria-label]")) {
-                candidates.add(node.attr("title"))
-                candidates.add(node.attr("data-title"))
-                candidates.add(node.attr("aria-label"))
-            }
             for (candidate in candidates) {
                 val key = normalizeTitle(candidate)
                 if (key.length >= 3) result.putIfAbsent(key, href)
@@ -68,19 +62,13 @@ class DizisolProvider : MainAPI() {
         val media = o.optString("media_type").ifBlank { o.optString("mediaType") }.ifBlank { fallback.orEmpty() }
         val tv = media.equals("tv", true) || media.equals("series", true) ||
             (media.isBlank() && (o.has("first_air_date") || o.has("name")))
-        val titleTr = o.optString("titleTr").takeIf { it.isNotBlank() && it != "null" }
-        val title = titleTr
-            ?: o.optString("title").takeIf { it.isNotBlank() && it != "null" }
-            ?: o.optString("name").takeIf { it.isNotBlank() && it != "null" } ?: return null
+        val title = o.optString("title").takeIf { it.isNotBlank() && it != "null" }
+            ?: o.optString("name").takeIf { it.isNotBlank() && it != "null" }
+            ?: o.optString("titleTr").takeIf { it.isNotBlank() && it != "null" } ?: return null
         val image = poster(o.optString("poster_path").ifBlank { o.optString("poster") })
         val year = o.optString("release_date").ifBlank { o.optString("first_air_date") }.take(4).toIntOrNull()
             ?: o.optInt("year").takeIf { it > 0 }
-        // Never expose internal IDs as SearchResponse URLs: CloudStream opens them as relative browser paths.
-        val url = listOfNotNull(
-            titleTr,
-            o.optString("title").takeIf { it.isNotBlank() && it != "null" },
-            o.optString("name").takeIf { it.isNotBlank() && it != "null" }
-        ).firstNotNullOfOrNull { canonical[normalizeTitle(it)] } ?: return null
+        val url = canonical[normalizeTitle(title)] ?: "dizisol|$id|${if (tv) "tv" else "movie"}"
         return if (tv) newTvSeriesSearchResponse(title, url, TvType.TvSeries) {
             posterUrl = image; this.year = year
         } else newMovieSearchResponse(title, url, TvType.Movie) {
@@ -96,8 +84,6 @@ class DizisolProvider : MainAPI() {
                 if (item != null) {
                     val id = value.optInt("id").takeIf { it > 0 } ?: value.optInt("tmdbId")
                     out["$fallback:$id"] = item
-                } else if (value.optInt("id") > 0 || value.optInt("tmdbId") > 0) {
-                    return
                 } else {
                     val keys = value.keys()
                     while (keys.hasNext()) {
