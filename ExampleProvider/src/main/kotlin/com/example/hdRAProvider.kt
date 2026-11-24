@@ -6,6 +6,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import org.jsoup.Jsoup
 import java.net.URLEncoder
+import java.text.Normalizer
 
 class DizisolProvider : MainAPI() {
     override var mainUrl = "https://dizisol.com/"
@@ -33,7 +34,30 @@ class DizisolProvider : MainAPI() {
         else -> null
     }
 
-    private fun response(o: JSONObject, fallback: String? = null): SearchResponse? {
+    private fun normalizeTitle(value: String): String = Normalizer.normalize(value.lowercase(), Normalizer.Form.NFD)
+        .replace("\p{Mn}+".toRegex(), "").replace("[^a-z0-9]+".toRegex(), " ").trim()
+
+    private fun canonicalMap(html: String): Map<String, String> {
+        val result = mutableMapOf<String, String>()
+        val doc = Jsoup.parse(html)
+        for (a in doc.select("a[href*=/izle/film/], a[href*=/izle/dizi/]")) {
+            val href = a.absUrl("href")
+            if (!href.startsWith(mainUrl)) continue
+            val candidates = listOf(
+                a.selectFirst("h1,h2,h3,h4")?.text().orEmpty(),
+                a.text(),
+                a.selectFirst("img")?.attr("alt").orEmpty(),
+                a.selectFirst("img")?.attr("title").orEmpty()
+            )
+            for (candidate in candidates) {
+                val key = normalizeTitle(candidate)
+                if (key.length >= 3) result.putIfAbsent(key, href)
+            }
+        }
+        return result
+    }
+
+    private fun response(o: JSONObject, fallback: String? = null, canonical: Map<String, String> = emptyMap()): SearchResponse? {
         val id = o.optInt("id").takeIf { it > 0 } ?: o.optInt("tmdbId").takeIf { it > 0 } ?: return null
         val media = o.optString("media_type").ifBlank { o.optString("mediaType") }.ifBlank { fallback.orEmpty() }
         val tv = media.equals("tv", true) || media.equals("series", true) ||
@@ -44,7 +68,7 @@ class DizisolProvider : MainAPI() {
         val image = poster(o.optString("poster_path").ifBlank { o.optString("poster") })
         val year = o.optString("release_date").ifBlank { o.optString("first_air_date") }.take(4).toIntOrNull()
             ?: o.optInt("year").takeIf { it > 0 }
-        val url = "dizisol|$id|${if (tv) "tv" else "movie"}"
+        val url = canonical[normalizeTitle(title)] ?: "dizisol|$id|${if (tv) "tv" else "movie"}"
         return if (tv) newTvSeriesSearchResponse(title, url, TvType.TvSeries) {
             posterUrl = image; this.year = year
         } else newMovieSearchResponse(title, url, TvType.Movie) {
@@ -52,11 +76,11 @@ class DizisolProvider : MainAPI() {
         }
     }
 
-    private fun collect(value: Any?, out: MutableMap<String, SearchResponse>, fallback: String? = null) {
+    private fun collect(value: Any?, out: MutableMap<String, SearchResponse>, fallback: String? = null, canonical: Map<String, String> = emptyMap()) {
         when (value) {
-            is JSONArray -> for (i in 0 until value.length()) collect(value.opt(i), out, fallback)
+            is JSONArray -> for (i in 0 until value.length()) collect(value.opt(i), out, fallback, canonical)
             is JSONObject -> {
-                val item = response(value, fallback)
+                val item = response(value, fallback, canonical)
                 if (item != null) {
                     val id = value.optInt("id").takeIf { it > 0 } ?: value.optInt("tmdbId")
                     out["$fallback:$id"] = item
@@ -69,7 +93,7 @@ class DizisolProvider : MainAPI() {
                             "movies", "movie", "films", "filmler" -> "movie"
                             else -> fallback
                         }
-                        collect(value.opt(key), out, kind)
+                        collect(value.opt(key), out, kind, canonical)
                     }
                 }
             }
@@ -78,6 +102,7 @@ class DizisolProvider : MainAPI() {
 
     private fun homeLists(html: String): List<HomePageList> {
         val queries = ssr(html)?.optJSONObject("state")?.optJSONArray("queries") ?: return emptyList()
+        val canonical = canonicalMap(html)
         val result = linkedMapOf<String, MutableList<SearchResponse>>()
         for (i in 0 until queries.length()) {
             val q = queries.optJSONObject(i) ?: continue
@@ -88,12 +113,12 @@ class DizisolProvider : MainAPI() {
                 for (j in 0 until rows.length()) {
                     val row = rows.optJSONObject(j) ?: continue
                     val cards = linkedMapOf<String, SearchResponse>()
-                    collect(row.opt("items"), cards)
+                    collect(row.opt("items"), cards, canonical = canonical)
                     if (cards.isNotEmpty()) result.getOrPut(row.optString("title").ifBlank { "DİZİSOL" }) { mutableListOf() }.addAll(cards.values)
                 }
             } else {
                 val cards = linkedMapOf<String, SearchResponse>()
-                collect(data, cards)
+                collect(data, cards, canonical = canonical)
                 if (cards.isNotEmpty()) result["DİZİSOL"] = cards.values.toMutableList()
             }
         }
@@ -126,7 +151,7 @@ class DizisolProvider : MainAPI() {
             out[href] = item
         }
         if (out.isEmpty()) {
-            ssr(html)?.optJSONObject("state")?.optJSONArray("queries")?.let { collect(it, out) }
+            ssr(html)?.optJSONObject("state")?.optJSONArray("queries")?.let { collect(it, out, canonical = canonicalMap(html)) }
         }
         return out.values.toList()
     }
